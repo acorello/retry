@@ -7,6 +7,8 @@ type Spec struct {
 }
 
 // Fn executes fn once. If it returns an error and `Spec.Stop` returns 'false' then it retries for the specified `Spec.Retries`.
+//
+// ⚠️ DOES NOT WAIT BETWEEN RETRIES ⚠️
 func Fn[T any](fn func() (T, error), retry Spec) (result T, err error) {
 	maxExecutions := 1 + retry.Retries
 	for range maxExecutions {

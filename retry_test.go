@@ -81,28 +81,33 @@ func TestFn(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			its := is.New(t)
+			tcErrors := SliceWithDefault[error]{Slice: tc.Errors}
 
 			var retryCount int
 			fnSpy := func() (string, error) {
 				retryCount++
-				return tc.Given.Result, SafeGet(tc.Errors, retryCount-1)
+				return tc.Given.Result, tcErrors.At(retryCount - 1)
 			}
 
 			actualResult, actualErr := retry.Fn[string](fnSpy, tc.Given.Spec)
 
 			its.Equal(tc.Given.Result, actualResult)
-			its.Equal(SafeGet(tc.Errors, retryCount-1), actualErr)
+			its.Equal(tcErrors.At(retryCount-1), actualErr)
 			its.Equal(tc.Wanted.Calls, retryCount)
 		})
 	}
 }
 
-func SafeGet[T any](slice []T, index int) T {
-	var zero T
-	if index < 0 || index >= len(slice) {
-		return zero
+type SliceWithDefault[T any] struct {
+	Default T
+	Slice   []T
+}
+
+func (my SliceWithDefault[T]) At(i int) T {
+	if my.Slice == nil || i >= len(my.Slice) {
+		return my.Default
 	}
-	return slice[index]
+	return my.Slice[i]
 }
 
 func stopAfter(invocations uint) func(err error) bool {
